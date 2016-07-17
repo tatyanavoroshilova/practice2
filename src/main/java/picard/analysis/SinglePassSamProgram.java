@@ -42,8 +42,10 @@ import picard.cmdline.Option;
 import picard.cmdline.StandardOptionDefinitions;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -125,8 +127,10 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 		}
 
 		final ProgressLogger progress = new ProgressLogger(log);
-		
+
 		ExecutorService service = Executors.newSingleThreadExecutor();
+		int MAX_PAIRS = 10000;
+		List<Object[]> pairs = new ArrayList<>(MAX_PAIRS);
 
 		for (final SAMRecord rec : in) {
 			final ReferenceSequence ref;
@@ -136,10 +140,24 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 				ref = walker.get(rec.getReferenceIndex());
 			}
 
+			pairs.add(new Object[] { rec, ref });
+
+			if (pairs.size() < MAX_PAIRS) {
+				continue;
+			}
+
+			final List<Object[]> tmpPairs = pairs;
+			pairs = new ArrayList<>(MAX_PAIRS);
+
 			Runnable task = new Runnable() {
 				public void run() {
+
 					for (final SinglePassSamProgram program : programs) {
-						program.acceptRead(rec, ref);
+						for (Object objects[] : tmpPairs) {
+							SAMRecord rec = (SAMRecord) objects[0];
+							ReferenceSequence ref = (ReferenceSequence) objects[1];
+							program.acceptRead(rec, ref);
+						}
 					}
 				}
 			};
