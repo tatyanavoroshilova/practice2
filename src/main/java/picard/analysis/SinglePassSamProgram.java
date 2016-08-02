@@ -158,6 +158,7 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 		}
 
 		CloserUtil.close(in);
+		service.shutdown();
 
 		for (final SinglePassSamProgram program : programs) {
 			program.finish();
